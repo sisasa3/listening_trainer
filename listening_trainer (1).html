@@ -42,11 +42,23 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .recent h2, .sheet h2{font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px}
 .recent-item{
   width:100%; text-align:left; background:var(--panel); border:1px solid var(--line);
-  border-radius:var(--r); padding:13px 15px; margin-bottom:8px;
-  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  border-radius:var(--r); padding:10px 10px 10px 10px; margin-bottom:8px;
+  display:flex; align-items:center; gap:11px;
 }
+.recent-item .thumb{width:64px; height:36px; border-radius:7px; object-fit:cover; background:var(--line); flex-shrink:0}
+.recent-item .meta{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px}
 .recent-item .t{font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.recent-item .p{color:var(--muted); font-size:12px; flex-shrink:0}
+.recent-item .p{color:var(--muted); font-size:12px; display:flex; gap:7px; align-items:center}
+.recent-item .p b{color:var(--accent); font-weight:800}
+.recent-item .go{flex:1; display:flex; align-items:center; gap:11px; min-width:0; text-align:left}
+.recent-item .rm{
+  flex-shrink:0; padding:9px 11px; color:var(--muted); font-size:17px; font-weight:700;
+  border-radius:9px; line-height:1;
+}
+.recent-item .rm:active{background:var(--warn-soft); color:var(--warn)}
+.recent-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px}
+.recent-head h2{margin:0}
+.recent-head .clearall{font-size:12px; font-weight:700; color:var(--muted); padding:4px 6px}
 .err{color:var(--warn); font-size:13px; display:none}
 
 /* ---------- 학습 화면 ---------- */
@@ -70,10 +82,9 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 }
 .chunkadj button:active{background:var(--accent-soft); border-color:var(--accent)}
 .chunkadj .lbl{font-size:12px; color:var(--muted); margin-right:2px}
-select{
-  font:inherit; font-weight:700; background:var(--panel); border:1.5px solid var(--line);
-  border-radius:10px; padding:9px 8px;
-}
+.chunkadj .lenval{font-weight:800; font-size:15px; min-width:34px; text-align:center}
+.chunkadj{flex-wrap:wrap}
+
 
 /* 속도 게이지 (시그니처) */
 .gauge{
@@ -177,12 +188,15 @@ select{
     <button class="btn-load" id="btnLoad">불러오기</button>
   </div>
   <div class="recent" id="recentWrap" style="display:none">
-    <h2>이어서 학습</h2>
+    <div class="recent-head">
+      <h2>이어서 학습</h2>
+      <button class="clearall" id="btnClearRecent">전체 삭제</button>
+    </div>
     <div id="recentList"></div>
   </div>
   <div class="recent" id="homeFlagsWrap" style="display:none">
     <h2>미해결 구간 <span class="num" id="homeFlagCnt"></span></h2>
-    <button class="recent-item" id="btnHomeFlags"><span class="t">목록 보기 · PC에서 자막으로 확인</span><span class="p">›</span></button>
+    <button class="recent-item" id="btnHomeFlags" style="padding:13px 15px"><span class="t" style="flex:1">목록 보기 · PC에서 자막으로 확인</span><span class="p">›</span></button>
   </div>
 </section>
 
@@ -205,13 +219,10 @@ select{
       <span class="lbl">시작</span>
       <button id="adjBack">−1s</button>
       <button id="adjFwd">+1s</button>
-      <span class="lbl" style="margin-left:8px">길이</span>
-      <select id="lenSel">
-        <option value="4">4초</option>
-        <option value="6" selected>6초</option>
-        <option value="8">8초</option>
-        <option value="10">10초</option>
-      </select>
+      <span class="lbl" style="margin-left:10px">길이</span>
+      <button id="lenDown">−1s</button>
+      <span class="lenval num" id="lenVal">6s</span>
+      <button id="lenUp">+1s</button>
     </div>
 
     <div class="gauge">
@@ -301,13 +312,13 @@ function mountPlayer(vid){
         const data = player.getVideoData();
         cur.title = (data && data.title) || cur.title || '';
         $('vTitle').textContent = cur.title;
-        S.videos[cur.id] = { title:cur.title, pos:cur.start, len:cur.len }; save();
+        S.videos[cur.id] = { title:cur.title, pos:cur.start, len:cur.len, at:Date.now() }; save();
         setStatus('▶ 아래 버튼이나 영상 탭으로 재생 시작');
         renderChunk();
       },
       onStateChange: (e) => {
         // 사용자가 영상을 직접 탭해서 재생한 경우에도 사이클에 편입
-        if(e.data === YT.PlayerState.PLAYING && cur.mode !== 'running'){
+        if(e.data === YT.PlayerState.PLAYING && cur.mode !== 'running' && cur.mode !== 'preview'){
           cur.mode = 'running'; grabWake(); startPoll(); renderSteps(); setStatus('');
         }
       }
@@ -318,6 +329,7 @@ function mountPlayer(vid){
 /* ───────── 사이클 엔진 ───────── */
 function playStep(){
   if(!player || !cur) return;
+  if(cur.step >= SPEEDS.length) cur.step = 0;
   cur.mode = 'running';
   clearTimeout(gapTimer);
   try{
@@ -346,6 +358,30 @@ function startPoll(){
     }
   }, POLL_MS);
 }
+function previewChunk(){
+  if(!player || !cur) return;
+  cur.mode = 'preview';
+  clearInterval(pollTimer); clearTimeout(gapTimer);
+  try{
+    player.setPlaybackRate(1);
+    player.seekTo(cur.start, true);
+    player.playVideo();
+  }catch(e){}
+  grabWake();
+  clearInterval(pollTimer);
+  pollTimer = setInterval(()=>{
+    if(!player || !cur || cur.mode!=='preview') return;
+    let t = 0; try{ t = player.getCurrentTime(); }catch(e){ return; }
+    if(t >= cur.start + cur.len - 0.05){
+      try{ player.pauseVideo(); }catch(e){}
+      clearInterval(pollTimer);
+      cur.mode = 'paused';
+      setStatus('구간 확인됨 · 사이클을 다시 시작하려면 "한 번 더"');
+    }
+  }, POLL_MS);
+  setStatus('구간 미리듣기 (원속)');
+  renderSteps();
+}
 function stopAll(){
   clearInterval(pollTimer); clearTimeout(gapTimer);
   if(player){ try{ player.pauseVideo(); }catch(e){} }
@@ -358,7 +394,7 @@ function advance(){
 }
 function persistPos(){
   if(!cur) return;
-  S.videos[cur.id] = { title:cur.title, pos:cur.start, len:cur.len }; save();
+  S.videos[cur.id] = { title:cur.title, pos:cur.start, len:cur.len, at:Date.now() }; save();
 }
 
 /* ───────── 렌더 ───────── */
@@ -379,7 +415,7 @@ function renderChunk(){
   if(!cur) return;
   $('chunkRange').innerHTML = fmt(cur.start) + ' – ' + fmt(cur.start + cur.len)
     + ' <small id="chunkNo">#' + (Math.floor(cur.start / cur.len) + 1) + '</small>';
-  $('lenSel').value = String(cur.len);
+  $('lenVal').textContent = cur.len + 's';
   renderSteps();
 }
 function setStatus(msg, await_){ const el=$('statusMsg'); el.textContent=msg; el.className='msg'+(await_?' await':''); }
@@ -413,16 +449,39 @@ function renderFlagList(){
     else openTrainer(f.id, f.start, f.len);
   });
 }
+function relDate(ts){
+  if(!ts) return '';
+  const d = Math.floor((Date.now()-ts)/86400000);
+  if(d <= 0) return '오늘';
+  if(d === 1) return '어제';
+  if(d < 7) return d+'일 전';
+  return new Date(ts).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
+}
 function renderRecent(){
-  const ids = Object.keys(S.videos);
+  const ids = Object.keys(S.videos).sort((a,b)=> (S.videos[b].at||0) - (S.videos[a].at||0));
   $('recentWrap').style.display = ids.length ? '' : 'none';
   const list = $('recentList'); list.innerHTML = '';
   ids.forEach(id=>{
     const v = S.videos[id];
-    const b = document.createElement('button'); b.className='recent-item';
-    b.innerHTML = '<span class="t">'+ (v.title || id) +'</span><span class="p num">'+ fmt(v.pos) +' ›</span>';
-    b.onclick = ()=> openTrainer(id, v.pos, v.len);
-    list.appendChild(b);
+    const row = document.createElement('div'); row.className = 'recent-item';
+    const nFlags = S.flags.filter(f=>f.id===id).length;
+    row.innerHTML =
+      '<button class="go">'+
+        '<img class="thumb" src="https://i.ytimg.com/vi/'+id+'/mqdefault.jpg" alt="">'+
+        '<span class="meta">'+
+          '<span class="t">'+ (v.title || id) +'</span>'+
+          '<span class="p"><b class="num">'+ fmt(v.pos) +'</b><span>부터 · '+ (v.len||6) +'초</span>'+
+            (nFlags ? '<span>· 미해결 '+nFlags+'</span>' : '') +
+            '<span style="margin-left:auto">'+ relDate(v.at) +'</span></span>'+
+        '</span>'+
+      '</button>'+
+      '<button class="rm" aria-label="목록에서 삭제">✕</button>';
+    row.querySelector('.go').onclick = ()=> openTrainer(id, v.pos, v.len);
+    row.querySelector('.rm').onclick = ()=>{
+      if(!confirm('이 영상의 학습 기록을 삭제할까요?\n(미해결 구간은 그대로 남습니다)')) return;
+      delete S.videos[id]; save(); renderRecent();
+    };
+    list.appendChild(row);
   });
 }
 
@@ -451,7 +510,7 @@ $('btnLoad').onclick = ()=>{
   if(!id){ $('urlErr').style.display='block'; return; }
   $('urlErr').style.display='none';
   const known = S.videos[id];
-  openTrainer(id, known ? known.pos : 0, known ? known.len : +($('lenSel').value||6));
+  openTrainer(id, known ? known.pos : 0, known ? known.len : 6);
 };
 $('urlInput').addEventListener('input', ()=> $('urlErr').style.display='none');
 $('btnBack').onclick = backHome;
@@ -466,16 +525,24 @@ $('btnFlag').onclick  = ()=>{
 
 $('btnPause').onclick = ()=>{
   if(!cur) return;
-  if(cur.mode === 'running'){ stopAll(); cur.mode='paused'; dropWake(); setStatus('일시정지됨'); $('btnPause').textContent='재개'; }
+  if(cur.mode === 'running' || cur.mode === 'preview'){ stopAll(); cur.mode='paused'; dropWake(); setStatus('일시정지됨'); $('btnPause').textContent='재개'; }
   else { $('btnPause').textContent='일시정지'; if(cur.mode==='paused') playStep(); else restartCycle(); }
 };
 
-$('adjBack').onclick = ()=>{ if(!cur) return; cur.start = Math.max(0, cur.start - 1); persistPos(); renderChunk(); playStep(); };
-$('adjFwd').onclick  = ()=>{ if(!cur) return; cur.start += 1; persistPos(); renderChunk(); playStep(); };
-$('lenSel').onchange = ()=>{ if(!cur) return; cur.len = +$('lenSel').value; persistPos(); renderChunk(); restartCycle(); };
+$('adjBack').onclick = ()=>{ if(!cur) return; cur.start = Math.max(0, cur.start - 1); persistPos(); renderChunk(); previewChunk(); };
+$('adjFwd').onclick  = ()=>{ if(!cur) return; cur.start += 1; persistPos(); renderChunk(); previewChunk(); };
+$('lenDown').onclick = ()=>{ if(!cur) return; cur.len = Math.max(1, cur.len - 1); persistPos(); renderChunk(); previewChunk(); };
+$('lenUp').onclick   = ()=>{ if(!cur) return; cur.len = Math.min(60, cur.len + 1); persistPos(); renderChunk(); previewChunk(); };
 
 $('prevChunk').onclick = ()=>{ if(!cur) return; cur.start = Math.max(0, cur.start - cur.len); persistPos(); restartCycle(); renderChunk(); };
 $('nextChunk').onclick = ()=>{ if(cur) advance(); };
+
+$('btnClearRecent').onclick = ()=>{
+  if(!confirm('학습 기록을 모두 삭제할까요?\n(미해결 구간은 그대로 남습니다)')) return;
+  S.videos = {}; save(); renderRecent();
+};
+window.addEventListener('pagehide', ()=>{ if(cur) persistPos(); });
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && cur) persistPos(); });
 
 $('btnSheet').onclick = openSheet;
 $('btnHomeFlags').onclick = openSheet;
