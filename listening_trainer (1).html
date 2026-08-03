@@ -62,87 +62,105 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .err{color:var(--warn); font-size:13px; display:none}
 
 /* ---------- 학습 화면 ---------- */
-#trainer{flex:1; display:none; flex-direction:column; height:100dvh}
-.topbar{display:flex; align-items:center; gap:8px; padding:10px 14px 8px}
-.topbar .back{padding:8px 10px; font-size:14px; color:var(--muted); font-weight:600}
-.topbar .title{flex:1; font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-#playerWrap{width:100%; aspect-ratio:16/9; background:#000; max-height:32dvh}
+#trainer{flex:1; display:none; flex-direction:column; height:100dvh; overflow:hidden}
+.topbar{display:flex; align-items:center; gap:6px; padding:6px 12px 5px; flex-shrink:0}
+.topbar .back{padding:6px 8px; font-size:13px; color:var(--muted); font-weight:600}
+.topbar .title{flex:1; font-size:12px; font-weight:600; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#playerWrap{width:100%; aspect-ratio:16/9; background:#000; max-height:26dvh; flex-shrink:0}
 #playerWrap iframe{width:100%; height:100%}
 
-.stage{flex:1; display:flex; flex-direction:column; padding:14px 16px 10px; gap:12px; overflow-y:auto}
+.stage{
+  flex:1; min-height:0; display:flex; flex-direction:column;
+  padding:10px 14px 6px; gap:9px; justify-content:center;
+}
 
-/* 청크 정보 */
-.chunkinfo{display:flex; align-items:baseline; justify-content:space-between}
-.chunkinfo .range{font-size:22px; font-weight:800; letter-spacing:-0.01em}
-.chunkinfo .range small{font-size:13px; color:var(--muted); font-weight:600; margin-left:6px}
-.chunkadj{display:flex; gap:8px; align-items:center}
+/* 청크 헤더 */
+.chunkbar{display:flex; align-items:center; gap:6px}
+.chunkbar .range{font-size:19px; font-weight:800; letter-spacing:-0.01em; flex:1; text-align:center; white-space:nowrap}
+.chunkbar .range small{font-size:11px; color:var(--muted); font-weight:600; margin-left:4px}
+.chunkbar .nav{
+  background:var(--panel); border:1.5px solid var(--line); border-radius:9px;
+  width:34px; height:34px; font-size:18px; font-weight:700; color:var(--muted); flex-shrink:0;
+}
+.chunkbar .pause{
+  background:var(--panel); border:1.5px solid var(--line); border-radius:9px;
+  padding:8px 10px; font-weight:700; font-size:12px; flex-shrink:0;
+}
+
+/* 조절 */
+.chunkadj{display:flex; gap:5px; align-items:center; justify-content:space-between}
 .chunkadj button{
-  background:var(--panel); border:1.5px solid var(--line); border-radius:10px;
-  padding:9px 13px; font-weight:700; font-size:14px; min-width:52px;
+  background:var(--panel); border:1.5px solid var(--line); border-radius:9px;
+  padding:9px 0; font-weight:700; font-size:14px; flex:1; min-width:0;
 }
 .chunkadj button:active{background:var(--accent-soft); border-color:var(--accent)}
-.chunkadj .lbl{font-size:12px; color:var(--muted); margin-right:2px}
-.chunkadj .lenval{font-weight:800; font-size:15px; min-width:34px; text-align:center}
-.chunkadj{flex-wrap:wrap}
-
+.chunkadj .lbl{font-size:11px; color:var(--muted); font-weight:600; flex-shrink:0; padding-right:1px}
+.chunkadj .lbl+button{margin-left:0}
+.chunkadj .lenval{font-weight:800; font-size:14px; width:32px; text-align:center; flex-shrink:0}
 
 /* 속도 게이지 (시그니처) */
 .gauge{
   background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
-  padding:14px 14px 16px;
+  padding:10px 11px 12px;
 }
-.gauge .glabel{display:flex; justify-content:space-between; font-size:12px; color:var(--muted); font-weight:600; margin-bottom:10px}
-.steps{display:flex; gap:6px}
+.gauge .glabel{
+  display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+  font-size:12px; color:var(--muted); font-weight:600; margin-bottom:8px;
+}
+.gauge .glabel .msg{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.gauge .glabel .msg.await{color:var(--accent); font-weight:700}
+.steps{display:flex; gap:5px}
 .step{
-  flex:1; text-align:center; padding:11px 0 9px; border-radius:9px;
-  border:1.5px solid var(--line); font-weight:700; font-size:14px; color:var(--muted);
-  position:relative; transition:all .18s ease;
+  flex:1; text-align:center; padding:8px 0 7px; border-radius:8px;
+  border:1.5px solid var(--line); font-weight:700; font-size:13px; color:var(--muted);
+  transition:all .18s ease;
 }
-.step .s-sub{display:block; font-size:10px; font-weight:600; margin-top:1px; letter-spacing:0.02em}
+.step .s-sub{display:block; font-size:9px; font-weight:600; margin-top:1px}
 .step.done{border-color:transparent; background:var(--bg); color:#A8ABA1}
-.step.now{border-color:var(--accent); background:var(--accent); color:#fff; transform:translateY(-2px); box-shadow:0 3px 8px rgba(43,75,216,.25)}
+.step.now{border-color:var(--accent); background:var(--accent); color:#fff; box-shadow:0 3px 8px rgba(43,75,216,.25)}
 .step.now .s-sub{color:#DCE3FA}
 
-.statusline{display:flex; align-items:center; justify-content:space-between; min-height:24px}
-.statusline .msg{font-size:14px; font-weight:600; color:var(--muted)}
-.statusline .msg.await{color:var(--accent)}
-.navchunk{display:flex; gap:8px}
-.navchunk button{
-  background:var(--panel); border:1.5px solid var(--line); border-radius:10px;
-  padding:8px 14px; font-weight:700; font-size:13px;
+.sheetchip{
+  align-self:center; padding:7px 14px; border-radius:999px; border:1px solid var(--line);
+  background:var(--panel); font-size:12px; font-weight:700; color:var(--muted);
 }
+.sheetchip .cnt{color:var(--warn); font-weight:800; margin-left:3px}
 
 /* 판정 버튼 */
 .judge{
-  padding:10px 16px calc(14px + env(safe-area-inset-bottom));
-  display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:10px;
+  flex-shrink:0;
+  padding:6px 14px calc(10px + env(safe-area-inset-bottom));
+  display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:8px;
   background:var(--bg);
 }
 .judge .b{
-  border-radius:16px; padding:17px 8px; font-size:16px; font-weight:800;
+  border-radius:14px; padding:12px 6px; font-size:15px; font-weight:800;
   display:flex; flex-direction:column; align-items:center; gap:2px;
   border:1.5px solid var(--line); background:var(--panel);
   transition:transform .08s ease;
 }
 .judge .b:active{transform:scale(.97)}
-.judge .b small{font-size:11px; font-weight:600; opacity:.75}
+.judge .b small{font-size:10px; font-weight:600; opacity:.75}
 .b-heard{grid-column:1 / -1; background:var(--ink); color:#fff; border-color:var(--ink)}
 .b-again{color:var(--ink)}
 .b-flag{color:var(--warn); border-color:var(--warn); background:var(--warn-soft)}
-.b-pause{
-  position:absolute; right:14px; top:10px;
-  background:var(--panel); border:1.5px solid var(--line); border-radius:10px;
-  padding:8px 12px; font-weight:700; font-size:13px;
+
+/* 짧은 화면 대응 */
+@media (max-height:700px){
+  #playerWrap{max-height:23dvh}
+  .stage{gap:7px; padding:8px 12px 4px}
+  .chunkbar .range{font-size:17px}
+  .judge .b{padding:10px 6px; font-size:14px}
+  .step .s-sub{display:none}
+  .step{padding:9px 0}
+}
+@media (max-height:600px){
+  .sheetchip{display:none}
+  .topbar{padding:4px 12px 3px}
+  .judge .b small{display:none}
 }
 
 /* 미해결 시트 */
-.sheetbar{padding:0 16px 8px}
-.sheetbar button{
-  width:100%; background:var(--panel); border:1px solid var(--line); border-radius:12px;
-  padding:11px; font-weight:700; font-size:13px; color:var(--muted);
-  display:flex; justify-content:center; gap:8px;
-}
-.sheetbar .cnt{color:var(--warn); font-weight:800}
 .sheet{
   position:fixed; left:0; right:0; bottom:0; max-height:70dvh; overflow-y:auto;
   background:var(--panel); border-radius:20px 20px 0 0; padding:18px 18px calc(24px + env(safe-area-inset-bottom));
@@ -208,39 +226,33 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   </div>
   <div id="playerWrap"><div id="ytp"></div></div>
 
-  <div class="stage" style="position:relative">
-    <button class="b-pause" id="btnPause">일시정지</button>
-
-    <div class="chunkinfo">
-      <div class="range num" id="chunkRange">0:00 – 0:06 <small id="chunkNo"></small></div>
+  <div class="stage">
+    <div class="chunkbar">
+      <button class="nav" id="prevChunk" aria-label="이전 청크">‹</button>
+      <div class="range num" id="chunkRange">0:00 – 0:06 <small>#1</small></div>
+      <button class="nav" id="nextChunk" aria-label="다음 청크">›</button>
+      <button class="pause" id="btnPause">일시정지</button>
     </div>
 
     <div class="chunkadj">
       <span class="lbl">시작</span>
-      <button id="adjBack">−1s</button>
-      <button id="adjFwd">+1s</button>
-      <span class="lbl" style="margin-left:10px">길이</span>
-      <button id="lenDown">−1s</button>
+      <button id="adjBack">−1</button>
+      <button id="adjFwd">+1</button>
+      <span class="lbl">길이</span>
+      <button id="lenDown">−1</button>
       <span class="lenval num" id="lenVal">6s</span>
-      <button id="lenUp">+1s</button>
+      <button id="lenUp">+1</button>
     </div>
 
     <div class="gauge">
-      <div class="glabel"><span>재생 사이클</span><span class="num" id="playCount">0 / 5</span></div>
+      <div class="glabel">
+        <span class="msg" id="statusMsg">재생을 시작하세요</span>
+        <span class="num" id="playCount">0 / 5</span>
+      </div>
       <div class="steps" id="stepsRow"></div>
     </div>
 
-    <div class="statusline">
-      <div class="msg" id="statusMsg">재생을 시작하세요</div>
-      <div class="navchunk">
-        <button id="prevChunk">‹ 이전</button>
-        <button id="nextChunk">다음 ›</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="sheetbar">
-    <button id="btnSheet">미해결 목록 <span class="cnt num" id="flagCnt">0</span></button>
+    <button class="sheetchip" id="btnSheet">미해결 목록 <span class="cnt num" id="flagCnt">0</span></button>
   </div>
 
   <div class="judge">
@@ -300,8 +312,8 @@ function mountPlayer(vid){
   clearTimeout(readyTimer);
   readyTimer = setTimeout(()=>{
     setStatus(location.protocol === 'file:'
-      ? '불러오기 실패: file:// 에서는 YouTube 제어가 불가합니다. https로 호스팅해 주세요.'
-      : '불러오기 실패: 네트워크 또는 임베드 차단 여부를 확인해 주세요.');
+      ? '실패: file://에서는 제어 불가'
+      : '불러오기 실패 · 네트워크 확인');
   }, 12000);
   player = new YT.Player('ytp', {
     videoId: vid,
@@ -313,7 +325,7 @@ function mountPlayer(vid){
         cur.title = (data && data.title) || cur.title || '';
         $('vTitle').textContent = cur.title;
         S.videos[cur.id] = { title:cur.title, pos:cur.start, len:cur.len, at:Date.now() }; save();
-        setStatus('▶ 아래 버튼이나 영상 탭으로 재생 시작');
+        setStatus('영상을 탭해 시작');
         renderChunk();
       },
       onStateChange: (e) => {
@@ -376,10 +388,10 @@ function previewChunk(){
       try{ player.pauseVideo(); }catch(e){}
       clearInterval(pollTimer);
       cur.mode = 'paused';
-      setStatus('구간 확인됨 · 사이클을 다시 시작하려면 "한 번 더"');
+      setStatus('구간 확인 완료');
     }
   }, POLL_MS);
-  setStatus('구간 미리듣기 (원속)');
+  setStatus('미리듣기 1×');
   renderSteps();
 }
 function stopAll(){
@@ -490,7 +502,7 @@ function openTrainer(id, startPos, len){
   cur = { id, title:(S.videos[id]&&S.videos[id].title)||'', start:startPos||0, len:len||6, step:0, mode:'idle' };
   $('home').style.display = 'none';
   $('trainer').style.display = 'flex';
-  renderChunk(); renderFlagCnt(); setStatus('영상 불러오는 중…');
+  renderChunk(); renderFlagCnt(); setStatus('불러오는 중…');
   if(ytReady) mountPlayer(id); else pendingId = id;
 }
 function backHome(){
