@@ -263,7 +263,6 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
       <div class="range num" id="chunkRange">0:00 – 0:06 <small>#1</small></div>
       <button class="nav" id="nextChunk" aria-label="다음 청크">›</button>
       <button class="icn" id="btnCC" aria-label="자막 켜기/끄기">CC</button>
-      <button class="icn" id="btnPause" aria-label="일시정지">⏸</button>
     </div>
 
     <div class="chunkadj">
@@ -404,10 +403,24 @@ function mountPlayer(vid){
       },
       onStateChange: (e) => {
         if(!cur) return;
-        // 되감기 직후 버퍼링으로 일시정지되면 유튜브 오버레이가 뜨므로 즉시 복구
-        if(e.data === YT.PlayerState.PAUSED &&
-           (cur.mode === 'running' || cur.mode === 'preview' || cur.mode === 'review')){
-          try{ player.playVideo(); }catch(err){}
+        if(e.data === YT.PlayerState.PAUSED){
+          // 되감기 직후의 정지는 버퍼링 → 자동 복구, 그 외에는 사용자가 탭한 것으로 간주
+          if(Date.now() < (cur.cooldown||0) + 600){
+            try{ player.playVideo(); }catch(err){}
+          } else if(cur.mode === 'running' || cur.mode === 'preview' || cur.mode === 'review'){
+            cur.prevMode = cur.mode;
+            cur.mode = 'paused';
+            clearInterval(pollTimer); clearTimeout(gapTimer);
+            dropWake();
+            setStatus('일시정지 · 영상을 탭하면 재개');
+          }
+        } else if(e.data === YT.PlayerState.PLAYING && cur.mode === 'paused'){
+          const back = cur.prevMode || 'running';
+          cur.mode = back;
+          grabWake();
+          if(back === 'preview') previewChunk();
+          else if(back === 'review' && cur.rev) startReview((cur.start - cur.rev.from) / 60);
+          else { startPoll(); setStatus(''); }
         }
       }
     }
@@ -460,11 +473,11 @@ function startPoll(){
         cur.step = 0;
         cur.round = (cur.round || 1) + 1;
         if(cur.round > MAX_ROUNDS){
+          cur.mode = 'paused'; cur.prevMode = 'running';
           try{ player.pauseVideo(); }catch(e){}
           clearInterval(pollTimer);
-          cur.mode = 'paused'; dropWake(); renderSteps();
+          dropWake(); renderSteps();
           setStatus('반복 '+MAX_ROUNDS+'회차 도달 · 판정하거나 "한 번 더"', true);
-          $('btnPause').textContent = '▶';
           return;
         }
       }
@@ -561,6 +574,7 @@ function renderReview(){
 
 function stopAll(){
   clearInterval(pollTimer); clearTimeout(gapTimer);
+  if(cur){ cur.prevMode = (cur.mode==='paused' ? (cur.prevMode||'running') : cur.mode); cur.mode = 'paused'; }
   if(player){ try{ player.pauseVideo(); }catch(e){} }
 }
 function restartCycle(){ cur.step = 0; cur.round = 1; playStep(); }
@@ -669,7 +683,6 @@ function openTrainer(id, startPos, len){
   cur = { id, title:(S.videos[id]&&S.videos[id].title)||'', start:startPos||0, len:len||6, step:0, round:1, rev:null, mode:'idle' };
   $('home').style.display = 'none';
   $('trainer').style.display = 'flex';
-  $('btnPause').textContent = '⏸';
   renderReview(); renderHideVid();
   renderChunk(); renderFlagCnt(); setStatus('불러오는 중…');
   if(ytReady) mountPlayer(id); else pendingId = id;
@@ -705,15 +718,6 @@ $('btnFlag').onclick  = ()=>{
   save(); renderFlagCnt(); advance();
 };
 
-$('btnPause').onclick = ()=>{
-  if(!cur) return;
-  if(cur.mode === 'running' || cur.mode === 'preview' || cur.mode === 'review'){
-    stopAll(); cur.mode='paused'; dropWake(); setStatus('일시정지됨'); $('btnPause').textContent='▶';
-  } else {
-    $('btnPause').textContent='⏸';
-    if(cur.mode==='paused') playStep(); else restartCycle();
-  }
-};
 $('btnCC').onclick = ()=>{ S.cc = !S.cc; save(); applyCC(); };
 
 $('adjBack').onclick = ()=>{ if(!cur) return; cur.start = Math.max(0, cur.start - 1); persistPos(); renderChunk(); previewChunk(); };
