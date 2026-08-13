@@ -69,9 +69,8 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 #playerWrap{width:100%; aspect-ratio:16/9; background:#000; max-height:26dvh; flex-shrink:0; position:relative; overflow:hidden}
 #playerWrap iframe{
   position:absolute; left:0; width:100%; height:134%; top:-17%;
-  pointer-events:none;
 }
-.shield{position:absolute; inset:0; background:transparent}
+.shield{display:none}
 
 .stage{
   flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;
@@ -287,10 +286,10 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 
     <div class="review" id="reviewBar">
       <span class="lbl">복습</span>
+      <button data-m="0.5">30초</button>
       <button data-m="1">1분</button>
       <button data-m="3">3분</button>
       <button data-m="5">5분</button>
-      <button data-m="10">10분</button>
     </div>
     <div class="review revon" id="reviewOn">
       <span class="rv-txt num" id="rvTxt"></span>
@@ -326,6 +325,18 @@ const LS_KEY = 'clt_state_v1';
 const POLL_MS = 150, MAX_ROUNDS = 8;
 
 let player = null, ytReady = false, pendingId = null;
+let RATES = null;                                  // 플레이어가 실제 지원하는 배속
+function effRate(r){
+  if(!RATES || !RATES.length) return r;
+  let best = RATES[0];
+  for(const x of RATES) if(Math.abs(x - r) < Math.abs(best - r)) best = x;
+  return best;
+}
+function setRate(r){
+  const e = effRate(r);
+  try{ player.setPlaybackRate(e); }catch(err){}
+  return e;
+}
 let S = load();                                 // { videos:{id:{title,pos,len}}, flags:[] }
 let cur = null;                                 // { id, title, start, len, step, mode }
 let pollTimer = null, gapTimer = null, wakeLock = null;
@@ -374,6 +385,11 @@ function mountPlayer(vid){
         $('vTitle').textContent = cur.title;
         S.videos[cur.id] = { title:cur.title, pos:cur.start, len:cur.len, at:Date.now() }; save();
         setStatus('');
+        try{
+          const r = player.getAvailablePlaybackRates();
+          if(r && r.length) RATES = r.slice().sort((a,b)=>a-b);
+        }catch(e){}
+        renderSteps();
         applyCC();
         restartCycle();
         // 자동재생이 차단된 경우 안내
@@ -405,7 +421,7 @@ function playStep(){
   cur.mode = 'running';
   clearTimeout(gapTimer);
   try{
-    player.setPlaybackRate(SPEEDS[cur.step]);
+    setRate(SPEEDS[cur.step]);
     player.seekTo(cur.start, true);
     player.playVideo();
   }catch(e){}
@@ -419,6 +435,25 @@ function startPoll(){
     if(Date.now() < (cur.cooldown||0)) return;      // seek 반영 대기
     let t = 0; try{ t = player.getCurrentTime(); }catch(e){ return; }
     if(t < cur.start - 1.5) return;                 // seek 미반영 상태
+
+    // 정지 감지: 재생 위치가 멈춰 있으면 해당 배속이 지원되지 않는 것으로 보고 복구
+    if(Math.abs(t - (cur.lastT ?? -1)) < 0.02){
+      cur.stall = (cur.stall || 0) + 1;
+      if(cur.stall === 4){
+        try{ player.playVideo(); }catch(e){}
+      } else if(cur.stall >= 8){
+        const bad = effRate(SPEEDS[cur.step]);
+        if(RATES) RATES = RATES.filter(x => x !== bad);
+        if(!RATES || !RATES.length) RATES = [1];
+        cur.stall = 0;
+        setRate(SPEEDS[cur.step]);
+        try{ player.playVideo(); }catch(e){}
+        renderSteps();
+        setStatus(bad + '× 미지원 · ' + effRate(SPEEDS[cur.step]) + '×로 대체');
+      }
+    } else { cur.stall = 0; }
+    cur.lastT = t;
+
     if(t >= cur.start + cur.len - 0.05){
       cur.step++;
       if(cur.step >= SPEEDS.length){
@@ -435,10 +470,11 @@ function startPoll(){
       }
       // 정지하지 않고 곧바로 되감기 — 일시정지 시 뜨는 유튜브 오버레이 방지
       try{
-        player.setPlaybackRate(SPEEDS[cur.step]);
+        setRate(SPEEDS[cur.step]);
         player.seekTo(cur.start, true);
       }catch(e){}
       cur.cooldown = Date.now() + 400;
+      cur.lastT = null; cur.stall = 0;
       renderSteps();
     }
   }, POLL_MS);
@@ -448,7 +484,7 @@ function previewChunk(){
   cur.mode = 'preview';
   clearInterval(pollTimer); clearTimeout(gapTimer);
   try{
-    player.setPlaybackRate(1);
+    setRate(1);
     player.seekTo(cur.start, true);
     player.playVideo();
   }catch(e){}
@@ -486,13 +522,13 @@ function applyCC(){
 function startReview(mins){
   if(!player || !cur) return;
   const to = cur.start + cur.len;                  // 현재 학습 청크 끝까지
-  const from = Math.max(0, cur.start - mins*60);
+  const from = Math.max(0, cur.start - Math.round(mins*60));
   if(to - from < 2){ setStatus('복습할 구간이 부족합니다'); return; }
   cur.rev = { from, to };
   cur.mode = 'review';
   clearInterval(pollTimer); clearTimeout(gapTimer);
   try{
-    player.setPlaybackRate(1);
+    setRate(1);
     player.seekTo(from, true);
     player.playVideo();
   }catch(e){}
@@ -544,8 +580,9 @@ function renderSteps(){
   SPEEDS.forEach((sp,i)=>{
     const d = document.createElement('div');
     d.className = 'step' + (cur ? (i < cur.step ? ' done' : (i === cur.step && cur.mode==='running' ? ' now' : '')) : '');
-    const lab = sp===1 ? '1×' : (sp===0.75 ? '¾×' : '½×');
-    const sub = (i===0) ? '원속' : (sp<1 ? '느리게' : '원속 복귀');
+    const e = effRate(sp);
+    const lab = e===1 ? '1×' : (e===0.75 ? '¾×' : (e===0.5 ? '½×' : e+'×'));
+    const sub = (i===0) ? '원속' : (e<1 ? '느리게' : '원속 복귀');
     d.innerHTML = lab + '<span class="s-sub">'+sub+'</span>';
     row.appendChild(d);
   });
@@ -696,7 +733,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 
 /* 복습 */
 $('reviewBar').querySelectorAll('button').forEach(b=>{
-  b.onclick = ()=> startReview(+b.dataset.m);
+  b.onclick = ()=> startReview(parseFloat(b.dataset.m));
 });
 $('btnRvEnd').onclick = endReview;
 
@@ -714,6 +751,17 @@ $('btnSheetClose').onclick = closeSheet;
 $('overlay').onclick = closeSheet;
 function openSheet(){ renderFlagList(); $('sheet').classList.add('open'); $('overlay').classList.add('on'); }
 function closeSheet(){ $('sheet').classList.remove('open'); $('overlay').classList.remove('on'); }
+
+/* 재생 상태 감시: 앱이 재생 중이라 판단하는데 플레이어가 멈춰 있으면 강제 복구 */
+setInterval(()=>{
+  if(!player || !cur) return;
+  if(cur.mode !== 'running' && cur.mode !== 'preview' && cur.mode !== 'review') return;
+  if(Date.now() < (cur.cooldown||0)) return;
+  let st = -1; try{ st = player.getPlayerState(); }catch(e){ return; }
+  if(st === YT.PlayerState.PAUSED || st === YT.PlayerState.CUED){
+    try{ player.playVideo(); }catch(e){}
+  }
+}, 400);
 
 /* 초기화 */
 if(location.protocol === 'file:') $('protoWarn').style.display = 'block';
