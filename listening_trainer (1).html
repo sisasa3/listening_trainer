@@ -66,16 +66,12 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .topbar{display:flex; align-items:center; gap:6px; padding:6px 12px 5px; flex-shrink:0}
 .topbar .back{padding:6px 8px; font-size:13px; color:var(--muted); font-weight:600}
 .topbar .title{flex:1; font-size:12px; font-weight:600; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-#playerWrap{width:100%; aspect-ratio:16/9; background:#000; max-height:26dvh; flex-shrink:0; position:relative}
-#playerWrap iframe{width:100%; height:100%; pointer-events:none}
-.shield{position:absolute; inset:0; background:transparent}
-.startbtn{
-  position:absolute; inset:0; margin:auto; width:132px; height:48px;
-  background:rgba(27,28,26,.82); color:#fff; border-radius:999px;
-  font-size:16px; font-weight:800; backdrop-filter:blur(3px);
-  display:flex; align-items:center; justify-content:center;
+#playerWrap{width:100%; aspect-ratio:16/9; background:#000; max-height:26dvh; flex-shrink:0; position:relative; overflow:hidden}
+#playerWrap iframe{
+  position:absolute; left:0; width:100%; height:134%; top:-17%;
+  pointer-events:none;
 }
-.startbtn.hide{display:none}
+.shield{position:absolute; inset:0; background:transparent}
 
 .stage{
   flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;
@@ -91,10 +87,12 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   background:var(--panel); border:1.5px solid var(--line); border-radius:9px;
   width:34px; height:34px; font-size:18px; font-weight:700; color:var(--muted); flex-shrink:0;
 }
-.chunkbar .pause{
+.chunkbar .icn{
   background:var(--panel); border:1.5px solid var(--line); border-radius:9px;
-  padding:8px 10px; font-weight:700; font-size:12px; flex-shrink:0;
+  width:38px; height:34px; font-size:13px; font-weight:800; color:var(--muted); flex-shrink:0;
 }
+.chunkbar .icn.on{background:var(--accent); border-color:var(--accent); color:#fff}
+#playerWrap.nocrop iframe{height:100%; top:0}
 
 /* 조절 */
 .chunkadj{display:flex; gap:5px; align-items:center; justify-content:space-between}
@@ -169,34 +167,6 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   .judge .b small{display:none}
 }
 
-/* 자막 패널 */
-.cap{display:flex; flex-direction:column}
-.cap-btn{
-  width:100%; padding:10px; border-radius:11px; border:1.5px dashed var(--line);
-  background:var(--panel); font-size:12.5px; font-weight:700; color:var(--muted);
-}
-.cap-veil{border-style:solid; border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
-.cap-text{
-  display:none; background:var(--ink); color:#fff; border-radius:12px;
-  padding:12px 14px; font-size:17px; font-weight:600; line-height:1.5;
-  max-height:22dvh; overflow-y:auto; letter-spacing:-0.005em;
-}
-.cap-text.on{display:block}
-.cap-text .empty-cue{color:#9DA096; font-weight:500; font-size:14px}
-.cap-btn.hide, .cap-text.hide{display:none}
-
-#txSheet textarea{
-  width:100%; height:34dvh; padding:12px; border:1.5px solid var(--line); border-radius:12px;
-  font:inherit; font-size:13px; line-height:1.5; resize:none; background:var(--bg); color:var(--ink);
-}
-.tx-actions{display:flex; gap:9px; margin-top:11px}
-.tx-actions button{
-  flex:1; padding:13px; border-radius:12px; font-weight:800; font-size:15px;
-  background:var(--accent); color:#fff;
-}
-.tx-actions .del{flex:0 0 90px; background:var(--panel); border:1.5px solid var(--line); color:var(--warn)}
-.tx-note{margin-top:9px; font-size:12.5px; color:var(--muted); text-align:center; min-height:16px}
-
 /* 미해결 시트 */
 .sheet{
   position:fixed; left:0; right:0; bottom:0; max-height:70dvh; overflow-y:auto;
@@ -264,7 +234,6 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   <div id="playerWrap">
     <div id="ytp"></div>
     <div class="shield" id="shield"></div>
-    <button class="startbtn" id="btnStart">▶ 시작</button>
   </div>
 
   <div class="stage">
@@ -272,7 +241,8 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
       <button class="nav" id="prevChunk" aria-label="이전 청크">‹</button>
       <div class="range num" id="chunkRange">0:00 – 0:06 <small>#1</small></div>
       <button class="nav" id="nextChunk" aria-label="다음 청크">›</button>
-      <button class="pause" id="btnPause">일시정지</button>
+      <button class="icn" id="btnCC" aria-label="자막 켜기/끄기">CC</button>
+      <button class="icn" id="btnPause" aria-label="일시정지">⏸</button>
     </div>
 
     <div class="chunkadj">
@@ -293,12 +263,6 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
       <div class="steps" id="stepsRow"></div>
     </div>
 
-    <div class="cap" id="capBox">
-      <button class="cap-btn" id="capAdd">＋ 이 영상 자막 붙여넣기</button>
-      <button class="cap-btn cap-veil" id="capReveal">👁 탭하여 이 구간 자막 확인</button>
-      <div class="cap-text" id="capText"></div>
-    </div>
-
     <button class="sheetchip" id="btnSheet">미해결 목록 <span class="cnt num" id="flagCnt">0</span></button>
   </div>
 
@@ -317,27 +281,12 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   <div id="flagList"></div>
 </div>
 
-<div class="sheet" id="txSheet">
-  <button class="close" id="btnTxClose">닫기</button>
-  <h2>자막 붙여넣기</h2>
-  <p style="font-size:12.5px; color:var(--muted); line-height:1.6; margin-bottom:10px">
-    PC 유튜브에서 <b>… &gt; 스크립트 표시</b> → 전체 복사 → 여기 붙여넣기.<br>
-    SRT / VTT 파일 내용도 그대로 인식합니다. 영상별로 저장됩니다.
-  </p>
-  <textarea id="txInput" placeholder="0:00&#10;There's definitely been times&#10;0:04&#10;in my code usage…"></textarea>
-  <div class="tx-actions">
-    <button id="btnTxSave">저장</button>
-    <button id="btnTxDel" class="del">삭제</button>
-  </div>
-  <div class="tx-note" id="txNote"></div>
-</div>
-
 <script>
 'use strict';
 /* ───────── 상수/상태 ───────── */
 const SPEEDS = [1, 0.75, 0.5, 1, 1];           // YouTube API 지원 배속만 사용 가능
 const LS_KEY = 'clt_state_v1';
-const POLL_MS = 150, GAP_MS = 500, ROUND_GAP_MS = 1100, MAX_ROUNDS = 8;
+const POLL_MS = 150, MAX_ROUNDS = 8;
 
 let player = null, ytReady = false, pendingId = null;
 let S = load();                                 // { videos:{id:{title,pos,len}}, flags:[] }
@@ -345,8 +294,8 @@ let cur = null;                                 // { id, title, start, len, step
 let pollTimer = null, gapTimer = null, wakeLock = null;
 
 function load(){
-  try{ const d = JSON.parse(localStorage.getItem(LS_KEY)); if(d && d.videos){ d.tx = d.tx || {}; return d; } }catch(e){}
-  return { videos:{}, flags:[], tx:{} };
+  try{ const d = JSON.parse(localStorage.getItem(LS_KEY)); if(d && d.videos) return d; }catch(e){}
+  return { videos:{}, flags:[] };
 }
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){} }
 
@@ -387,8 +336,17 @@ function mountPlayer(vid){
         cur.title = (data && data.title) || cur.title || '';
         $('vTitle').textContent = cur.title;
         S.videos[cur.id] = { title:cur.title, pos:cur.start, len:cur.len, at:Date.now() }; save();
-        setStatus('시작 버튼을 누르세요');
-        $('btnStart').classList.remove('hide');
+        setStatus('');
+        applyCC();
+        restartCycle();
+        // 자동재생이 차단된 경우 안내
+        setTimeout(()=>{
+          if(!cur) return;
+          let st = -1; try{ st = player.getPlayerState(); }catch(e){}
+          if(st !== YT.PlayerState.PLAYING && st !== YT.PlayerState.BUFFERING){
+            setStatus('"한 번 더"를 눌러 재생 시작', true);
+          }
+        }, 1200);
         renderChunk();
       },
       onStateChange: (e) => {
@@ -409,33 +367,37 @@ function playStep(){
     player.seekTo(cur.start, true);
     player.playVideo();
   }catch(e){}
+  cur.cooldown = Date.now() + 400;
   grabWake(); startPoll(); renderSteps(); setStatus('');
 }
 function startPoll(){
   clearInterval(pollTimer);
   pollTimer = setInterval(()=>{
     if(!player || !cur || cur.mode!=='running') return;
+    if(Date.now() < (cur.cooldown||0)) return;      // seek 반영 대기
     let t = 0; try{ t = player.getCurrentTime(); }catch(e){ return; }
+    if(t < cur.start - 1.5) return;                 // seek 미반영 상태
     if(t >= cur.start + cur.len - 0.05){
-      try{ player.pauseVideo(); }catch(e){}
-      clearInterval(pollTimer);
       cur.step++;
       if(cur.step >= SPEEDS.length){
-        // 사이클 완주 → 멈추지 않고 다음 회차로 계속 반복
         cur.step = 0;
         cur.round = (cur.round || 1) + 1;
-        renderSteps();
         if(cur.round > MAX_ROUNDS){
-          cur.mode = 'paused'; dropWake();
+          try{ player.pauseVideo(); }catch(e){}
+          clearInterval(pollTimer);
+          cur.mode = 'paused'; dropWake(); renderSteps();
           setStatus('반복 '+MAX_ROUNDS+'회차 도달 · 판정하거나 "한 번 더"', true);
-          $('btnPause').textContent = '재개';
+          $('btnPause').textContent = '▶';
           return;
         }
-        gapTimer = setTimeout(playStep, ROUND_GAP_MS);
-      } else {
-        renderSteps();
-        gapTimer = setTimeout(playStep, GAP_MS);
       }
+      // 정지하지 않고 곧바로 되감기 — 일시정지 시 뜨는 유튜브 오버레이 방지
+      try{
+        player.setPlaybackRate(SPEEDS[cur.step]);
+        player.seekTo(cur.start, true);
+      }catch(e){}
+      cur.cooldown = Date.now() + 400;
+      renderSteps();
     }
   }, POLL_MS);
 }
@@ -448,70 +410,34 @@ function previewChunk(){
     player.seekTo(cur.start, true);
     player.playVideo();
   }catch(e){}
+  cur.cooldown = Date.now() + 400;
   grabWake();
-  clearInterval(pollTimer);
   pollTimer = setInterval(()=>{
     if(!player || !cur || cur.mode!=='preview') return;
+    if(Date.now() < (cur.cooldown||0)) return;
     let t = 0; try{ t = player.getCurrentTime(); }catch(e){ return; }
     if(t >= cur.start + cur.len - 0.05){
-      try{ player.seekTo(cur.start, true); player.playVideo(); }catch(e){}
+      try{ player.seekTo(cur.start, true); }catch(e){}
+      cur.cooldown = Date.now() + 400;
     }
   }, POLL_MS);
   setStatus('구간 확인 반복 1×');
   renderSteps();
 }
-/* ───────── 자막 ───────── */
-const TS = /(?:(\d+):)?(\d{1,2}):(\d{2})(?:[.,](\d{1,3}))?/;
-function tsSec(m){ return (+(m[1]||0))*3600 + (+m[2])*60 + (+m[3]) + (m[4] ? +('0.'+m[4]) : 0); }
-
-function parseCues(raw){
-  const lines = raw.replace(/\r/g,'').split('\n');
-  const onlyRe = new RegExp('^'+TS.source+'$');
-  const leadRe = new RegExp('^'+TS.source+'\\s+(.+)$');
-  const cues = []; let c = null;
-  for(const line of lines){
-    const s = line.trim();
-    if(!s || /^WEBVTT/i.test(s)) continue;
-    if(s.includes('-->')){                       // SRT / VTT 타임코드 행
-      const m = s.match(TS);
-      if(m){ c = { t:tsSec(m), txt:'' }; cues.push(c); }
-      continue;
+/* ───────── 자막 토글 ───────── */
+function applyCC(){
+  if(!player) return;
+  try{
+    if(S.cc){
+      player.loadModule('captions');
+      setTimeout(()=>{ try{ player.setOption('captions','track',{languageCode:'en'}); }catch(e){} }, 350);
+    } else {
+      player.unloadModule('captions');
     }
-    if(/^\d+$/.test(s) && !onlyRe.test(s)) continue;   // SRT 인덱스 행
-    let m = s.match(onlyRe);
-    if(m){ c = { t:tsSec(m), txt:'' }; cues.push(c); continue; }
-    m = s.match(leadRe);
-    if(m){ c = { t:tsSec(m), txt:m[5] }; cues.push(c); continue; }
-    if(c) c.txt += (c.txt ? ' ' : '') + s;
-  }
-  return cues.filter(x => x.txt).sort((a,b)=> a.t - b.t);
-}
-
-function cuesFor(id, from, to){
-  const cs = S.tx && S.tx[id];
-  if(!cs || !cs.length) return null;
-  const out = [];
-  for(let i=0;i<cs.length;i++){
-    const st = cs[i].t, en = (i+1 < cs.length) ? cs[i+1].t : st + 8;
-    if(st < to && en > from) out.push(cs[i].txt);
-  }
-  return out.join(' ').replace(/\s+/g,' ').trim();
-}
-
-function renderCap(){
-  const add = $('capAdd'), rev = $('capReveal'), txt = $('capText');
-  const has = cur && S.tx && S.tx[cur.id] && S.tx[cur.id].length;
-  txt.classList.remove('on');
-  if(!has){ add.classList.remove('hide'); rev.classList.add('hide'); return; }
-  add.classList.add('hide'); rev.classList.remove('hide');
-}
-function revealCap(){
-  if(!cur) return;
-  const t = cuesFor(cur.id, cur.start, cur.start + cur.len);
-  const box = $('capText');
-  box.innerHTML = t ? t : '<span class="empty-cue">이 구간에 해당하는 자막이 없습니다</span>';
-  box.classList.add('on');
-  $('capReveal').classList.add('hide');
+  }catch(e){}
+  // 자막은 화면 하단에 표시되므로, 켤 때는 상하 크롭을 해제
+  $('playerWrap').classList.toggle('nocrop', !!S.cc);
+  $('btnCC').classList.toggle('on', !!S.cc);
 }
 
 function stopAll(){
@@ -549,7 +475,6 @@ function renderChunk(){
   $('chunkRange').innerHTML = fmt(cur.start) + ' – ' + fmt(cur.start + cur.len)
     + ' <small id="chunkNo">#' + (Math.floor(cur.start / cur.len) + 1) + '</small>';
   $('lenVal').textContent = cur.len + 's';
-  renderCap();
   renderSteps();
 }
 function setStatus(msg, await_){ const el=$('statusMsg'); el.textContent=msg; el.className='msg'+(await_?' await':''); }
@@ -624,8 +549,7 @@ function openTrainer(id, startPos, len){
   cur = { id, title:(S.videos[id]&&S.videos[id].title)||'', start:startPos||0, len:len||6, step:0, round:1, mode:'idle' };
   $('home').style.display = 'none';
   $('trainer').style.display = 'flex';
-  $('btnStart').classList.add('hide');
-  $('btnPause').textContent = '일시정지';
+  $('btnPause').textContent = '⏸';
   renderChunk(); renderFlagCnt(); setStatus('불러오는 중…');
   if(ytReady) mountPlayer(id); else pendingId = id;
 }
@@ -651,8 +575,6 @@ $('btnLoad').onclick = ()=>{
 $('urlInput').addEventListener('input', ()=> $('urlErr').style.display='none');
 $('btnBack').onclick = backHome;
 
-$('btnStart').onclick = ()=>{ if(!cur) return; $('btnStart').classList.add('hide'); restartCycle(); };
-
 $('btnHeard').onclick = ()=>{ if(cur) advance(); };
 $('btnAgain').onclick = ()=>{ if(cur) restartCycle(); };
 $('btnFlag').onclick  = ()=>{
@@ -663,9 +585,14 @@ $('btnFlag').onclick  = ()=>{
 
 $('btnPause').onclick = ()=>{
   if(!cur) return;
-  if(cur.mode === 'running' || cur.mode === 'preview'){ stopAll(); cur.mode='paused'; dropWake(); setStatus('일시정지됨'); $('btnPause').textContent='재개'; }
-  else { $('btnPause').textContent='일시정지'; if(cur.mode==='paused') playStep(); else restartCycle(); }
+  if(cur.mode === 'running' || cur.mode === 'preview'){
+    stopAll(); cur.mode='paused'; dropWake(); setStatus('일시정지됨'); $('btnPause').textContent='▶';
+  } else {
+    $('btnPause').textContent='⏸';
+    if(cur.mode==='paused') playStep(); else restartCycle();
+  }
 };
+$('btnCC').onclick = ()=>{ S.cc = !S.cc; save(); applyCC(); };
 
 $('adjBack').onclick = ()=>{ if(!cur) return; cur.start = Math.max(0, cur.start - 1); persistPos(); renderChunk(); previewChunk(); };
 $('adjFwd').onclick  = ()=>{ if(!cur) return; cur.start += 1; persistPos(); renderChunk(); previewChunk(); };
@@ -682,43 +609,16 @@ $('btnClearRecent').onclick = ()=>{
 window.addEventListener('pagehide', ()=>{ if(cur) persistPos(); });
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && cur) persistPos(); });
 
-/* 자막 UI */
-$('capReveal').onclick = revealCap;
-$('capAdd').onclick = openTx;
-$('btnTxClose').onclick = closeTx;
-function openTx(){
-  if(!cur) return;
-  const cs = S.tx[cur.id];
-  $('txInput').value = '';
-  $('txNote').textContent = cs && cs.length ? '저장된 자막: '+cs.length+'개 구간 (다시 붙여넣으면 교체됩니다)' : '';
-  $('txSheet').classList.add('open'); $('overlay').classList.add('on');
-}
-function closeTx(){ $('txSheet').classList.remove('open'); $('overlay').classList.remove('on'); }
-$('btnTxSave').onclick = ()=>{
-  if(!cur) return;
-  const cues = parseCues($('txInput').value);
-  if(!cues.length){ $('txNote').textContent = '타임스탬프를 찾지 못했습니다. 시간 표기가 포함된 스크립트인지 확인해 주세요.'; return; }
-  S.tx[cur.id] = cues;
-  try{ save(); }catch(e){}
-  $('txNote').textContent = cues.length+'개 구간 저장됨';
-  renderCap();
-  setTimeout(closeTx, 700);
-};
-$('btnTxDel').onclick = ()=>{
-  if(!cur) return;
-  delete S.tx[cur.id]; save(); renderCap();
-  $('txInput').value=''; $('txNote').textContent = '삭제되었습니다';
-};
-
 $('btnSheet').onclick = openSheet;
 $('btnHomeFlags').onclick = openSheet;
 $('btnSheetClose').onclick = closeSheet;
-$('overlay').onclick = ()=>{ closeSheet(); closeTx(); };
+$('overlay').onclick = closeSheet;
 function openSheet(){ renderFlagList(); $('sheet').classList.add('open'); $('overlay').classList.add('on'); }
 function closeSheet(){ $('sheet').classList.remove('open'); $('overlay').classList.remove('on'); }
 
 /* 초기화 */
 if(location.protocol === 'file:') $('protoWarn').style.display = 'block';
+$('btnCC').classList.toggle('on', !!S.cc);
 renderRecent(); renderFlagCnt(); renderSteps();
 </script>
 </body>
