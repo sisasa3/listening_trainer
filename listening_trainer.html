@@ -407,7 +407,7 @@ function mountPlayer(vid){
           // 되감기 직후의 정지는 버퍼링 → 자동 복구, 그 외에는 사용자가 탭한 것으로 간주
           if(Date.now() < (cur.cooldown||0) + 600){
             try{ player.playVideo(); }catch(err){}
-          } else if(cur.mode === 'running' || cur.mode === 'preview' || cur.mode === 'review'){
+          } else if(cur.mode === 'running' || cur.mode === 'review'){
             cur.prevMode = cur.mode;
             cur.mode = 'paused';
             clearInterval(pollTimer); clearTimeout(gapTimer);
@@ -418,8 +418,7 @@ function mountPlayer(vid){
           const back = cur.prevMode || 'running';
           cur.mode = back;
           grabWake();
-          if(back === 'preview') previewChunk();
-          else if(back === 'review' && cur.rev) startReview((cur.start - cur.rev.from) / 60);
+          if(back === 'review' && cur.rev) startReview((cur.start - cur.rev.from) / 60);
           else { startPoll(); setStatus(''); }
         }
       }
@@ -491,29 +490,6 @@ function startPoll(){
       renderSteps();
     }
   }, POLL_MS);
-}
-function previewChunk(){
-  if(!player || !cur) return;
-  cur.mode = 'preview';
-  clearInterval(pollTimer); clearTimeout(gapTimer);
-  try{
-    setRate(1);
-    player.seekTo(cur.start, true);
-    player.playVideo();
-  }catch(e){}
-  cur.cooldown = Date.now() + 400;
-  grabWake();
-  pollTimer = setInterval(()=>{
-    if(!player || !cur || cur.mode!=='preview') return;
-    if(Date.now() < (cur.cooldown||0)) return;
-    let t = 0; try{ t = player.getCurrentTime(); }catch(e){ return; }
-    if(t >= cur.start + cur.len - 0.05){
-      try{ player.seekTo(cur.start, true); }catch(e){}
-      cur.cooldown = Date.now() + 400;
-    }
-  }, POLL_MS);
-  setStatus('구간 확인 반복 1×');
-  renderSteps();
 }
 /* ───────── 자막 토글 ───────── */
 function applyCC(){
@@ -720,10 +696,10 @@ $('btnFlag').onclick  = ()=>{
 
 $('btnCC').onclick = ()=>{ S.cc = !S.cc; save(); applyCC(); };
 
-$('adjBack').onclick = ()=>{ if(!cur) return; cur.start = Math.max(0, cur.start - 1); persistPos(); renderChunk(); previewChunk(); };
-$('adjFwd').onclick  = ()=>{ if(!cur) return; cur.start += 1; persistPos(); renderChunk(); previewChunk(); };
-$('lenDown').onclick = ()=>{ if(!cur) return; cur.len = Math.max(1, cur.len - 1); persistPos(); renderChunk(); previewChunk(); };
-$('lenUp').onclick   = ()=>{ if(!cur) return; cur.len = Math.min(60, cur.len + 1); persistPos(); renderChunk(); previewChunk(); };
+$('adjBack').onclick = ()=>{ if(!cur) return; cur.start = Math.max(0, cur.start - 1); persistPos(); renderChunk(); restartCycle(); };
+$('adjFwd').onclick  = ()=>{ if(!cur) return; cur.start += 1; persistPos(); renderChunk(); restartCycle(); };
+$('lenDown').onclick = ()=>{ if(!cur) return; cur.len = Math.max(1, cur.len - 1); persistPos(); renderChunk(); restartCycle(); };
+$('lenUp').onclick   = ()=>{ if(!cur) return; cur.len = Math.min(60, cur.len + 1); persistPos(); renderChunk(); restartCycle(); };
 
 $('prevChunk').onclick = ()=>{ if(!cur) return; cur.start = Math.max(0, cur.start - cur.len); persistPos(); restartCycle(); renderChunk(); };
 $('nextChunk').onclick = ()=>{ if(cur) advance(); };
@@ -759,7 +735,7 @@ function closeSheet(){ $('sheet').classList.remove('open'); $('overlay').classLi
 /* 재생 상태 감시: 앱이 재생 중이라 판단하는데 플레이어가 멈춰 있으면 강제 복구 */
 setInterval(()=>{
   if(!player || !cur) return;
-  if(cur.mode !== 'running' && cur.mode !== 'preview' && cur.mode !== 'review') return;
+  if(cur.mode !== 'running' && cur.mode !== 'review') return;
   if(Date.now() < (cur.cooldown||0)) return;
   let st = -1; try{ st = player.getPlayerState(); }catch(e){ return; }
   if(st === YT.PlayerState.PAUSED || st === YT.PlayerState.CUED){
