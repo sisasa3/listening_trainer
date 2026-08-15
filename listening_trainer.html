@@ -369,6 +369,7 @@ window.onYouTubeIframeAPIReady = () => { ytReady = true; if(pendingId){ mountPla
 let readyTimer = null;
 function mountPlayer(vid){
   if(player){ player.destroy(); player = null; }
+  RATES = null;
   clearTimeout(readyTimer);
   readyTimer = setTimeout(()=>{
     setStatus(location.protocol === 'file:'
@@ -450,20 +451,23 @@ function startPoll(){
     let t = 0; try{ t = player.getCurrentTime(); }catch(e){ return; }
     if(t < cur.start - 1.5) return;                 // seek 미반영 상태
 
-    // 정지 감지: 재생 위치가 멈춰 있으면 해당 배속이 지원되지 않는 것으로 보고 복구
-    if(Math.abs(t - (cur.lastT ?? -1)) < 0.02){
+    // 정지 감지: 재생 중인데도 위치가 멈춰 있을 때만 (일시정지는 제외)
+    let pst = -1; try{ pst = player.getPlayerState(); }catch(e){}
+    if(pst === YT.PlayerState.PLAYING && Math.abs(t - (cur.lastT ?? -1)) < 0.02){
       cur.stall = (cur.stall || 0) + 1;
       if(cur.stall === 4){
         try{ player.playVideo(); }catch(e){}
-      } else if(cur.stall >= 8){
+      } else if(cur.stall >= 10){
         const bad = effRate(SPEEDS[cur.step]);
-        if(RATES) RATES = RATES.filter(x => x !== bad);
-        if(!RATES || !RATES.length) RATES = [1];
         cur.stall = 0;
-        setRate(SPEEDS[cur.step]);
+        if(bad !== 1 && RATES){                    // 1×는 항상 유지
+          RATES = RATES.filter(x => x !== bad);
+          if(!RATES.length) RATES = [1];
+          setRate(SPEEDS[cur.step]);
+          renderSteps();
+          setStatus(bad + '× 미지원 · ' + effRate(SPEEDS[cur.step]) + '×로 대체');
+        }
         try{ player.playVideo(); }catch(e){}
-        renderSteps();
-        setStatus(bad + '× 미지원 · ' + effRate(SPEEDS[cur.step]) + '×로 대체');
       }
     } else { cur.stall = 0; }
     cur.lastT = t;
